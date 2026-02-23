@@ -1,0 +1,29 @@
+---
+description: No nested (2+ level) ternaries; factor out into helper functions with if statements
+globs: "**/*.ts,**/*.tsx"
+alwaysApply: true
+---
+
+# No Nested Ternaries
+
+- **Do not use 2-level (or deeper) ternary operators.** They are hard to read and maintain.
+- **Factor out** such logic into a helper function that uses **if statements** instead.
+
+## Examples
+
+```ts
+// ❌ BAD – nested ternary
+const label = isLocked ? "Locked" : count === 0 ? (tier === 0 ? "Starter" : "Special") : `${count} items`;
+
+// ✅ GOOD – helper with if statements
+function getLabel(isLocked: boolean, count: number, tier: number): string {
+  if (isLocked) return "Locked";
+  if (count === 0) {
+    if (tier === 0) return "Starter";
+    return "Special";
+  }
+  return `${count} items`;
+}
+```
+
+Single-level ternaries (`condition ? a : b`) are acceptable when they stay short and clear. When in doubt, prefer a helper with if statements.

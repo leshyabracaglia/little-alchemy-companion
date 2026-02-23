@@ -1,26 +1,71 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  SafeAreaView,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../constants/colors";
 import { ELEMENTS, Element } from "../constants/elements";
 import { ElementCard } from "../components/ElementCard";
 import { ElementDetailModal } from "../components/ElementDetailModal";
+import { PaywallModal } from "../components/PaywallModal";
+import { usePurchase } from "../hooks/usePurchase";
 
 export default function BrowseScreen() {
+  const {
+    isPremium,
+    isPurchasing,
+    product,
+    error,
+    handlePurchase,
+    handleRestorePurchase,
+  } = usePurchase();
+
   const [selectedElement, setSelectedElement] = useState<Element | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [paywallVisible, setPaywallVisible] = useState(false);
+
+  const handleElementPress = (element: Element) => {
+    if (!isPremium && element.tier >= 10) {
+      setPaywallVisible(true);
+      return;
+    }
+    setSelectedElement(element);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredElements = useMemo(() => {
     if (!searchQuery.trim()) return ELEMENTS;
     const query = searchQuery.toLowerCase();
-    return ELEMENTS.filter((el) => el.name.toLowerCase().includes(query));
+    return ELEMENTS.filter((element) =>
+      element.name.toLowerCase().includes(query),
+    );
   }, [searchQuery]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingScreen}>
+          <Text style={styles.loadingTitle}>Little Alchemy 2</Text>
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.spinner}
+          />
+          <Text style={styles.loadingSubtitle}>Loading elements...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -43,15 +88,20 @@ export default function BrowseScreen() {
 
       {searchQuery.length > 0 && (
         <Text style={styles.resultCount}>
-          {filteredElements.length} result{filteredElements.length !== 1 ? "s" : ""}
+          {filteredElements.length} result
+          {filteredElements.length !== 1 ? "s" : ""}
         </Text>
       )}
 
       <FlatList
         data={filteredElements}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ElementCard element={item} onPress={() => setSelectedElement(item)} />
+        keyExtractor={(element) => element.id}
+        renderItem={({ item: element }) => (
+          <ElementCard
+            element={element}
+            onPress={() => handleElementPress(element)}
+            isLocked={!isPremium && element.tier >= 10}
+          />
         )}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
@@ -61,6 +111,16 @@ export default function BrowseScreen() {
         element={selectedElement}
         onClose={() => setSelectedElement(null)}
         onSelectElement={setSelectedElement}
+      />
+
+      <PaywallModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        onPurchase={handlePurchase}
+        onRestore={handleRestorePurchase}
+        isPurchasing={isPurchasing}
+        product={product}
+        error={error}
       />
     </SafeAreaView>
   );
@@ -108,5 +168,23 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: colors.text,
+    marginBottom: 32,
+  },
+  spinner: {
+    marginBottom: 16,
+  },
+  loadingSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });

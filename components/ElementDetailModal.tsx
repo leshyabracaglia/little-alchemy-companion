@@ -5,15 +5,11 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  Image,
 } from "react-native";
 import { colors, getTierColor } from "../constants/colors";
-import {
-  Element,
-  ELEMENT_BY_ID,
-  RECIPES_USING,
-  TIER_NAMES,
-} from "../constants/elements";
+import { Element, RECIPES_USING, TIER_NAMES } from "../constants/elements";
+import { ElementIcon } from "./ElementIcon";
+import { getElementById, getElementByName } from "../utils/elementUtils";
 
 interface ElementDetailModalProps {
   element: Element | null;
@@ -21,34 +17,147 @@ interface ElementDetailModalProps {
   onSelectElement: (element: Element) => void;
 }
 
-function toId(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function getIconUrl(url: string | null, size: number = 72): string | null {
-  if (!url) return null;
-  return url.replace("/revision/latest", `/revision/latest/scale-to-width-down/${size}`);
-}
-
-function ElementIcon({ element, size = 40 }: { element: Element; size?: number }) {
+function ModalHeader({
+  element,
+  onClose,
+}: {
+  element: Element;
+  onClose: () => void;
+}) {
   const tierColor = getTierColor(element.tier);
-  const iconUrl = getIconUrl(element.iconUrl, size * 2);
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerContent}>
+        <View style={styles.headerIconWrap}>
+          <ElementIcon element={element} size={56} />
+        </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.title}>{element.name}</Text>
+          <View
+            style={[styles.tierBadge, { backgroundColor: tierColor + "22" }]}
+          >
+            <Text style={[styles.tierBadgeText, { color: tierColor }]}>
+              {TIER_NAMES[element.tier] ?? `Tier ${element.tier}`}
+            </Text>
+          </View>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Text style={styles.closeButtonText}>Done</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function RecipeRow({
+  ingredients,
+  onSelectElement,
+}: {
+  ingredients: [string, string];
+  onSelectElement: (element: Element) => void;
+}) {
+  const firstIngredientElement = getElementByName(ingredients[0]);
+  const secondIngredientElement = getElementByName(ingredients[1]);
+
+  const handleElementPress = (name: string) => {
+    const ingredientElement = getElementByName(name);
+    if (ingredientElement) onSelectElement(ingredientElement);
+  };
 
   return (
-    <View style={[styles.iconContainer, { width: size, height: size, backgroundColor: tierColor + "22" }]}>
-      {iconUrl ? (
-        <Image
-          source={{ uri: iconUrl }}
-          style={{ width: size * 0.75, height: size * 0.75 }}
-          resizeMode="contain"
-        />
+    <View style={styles.recipeRow}>
+      <TouchableOpacity
+        style={styles.ingredientButton}
+        onPress={() => handleElementPress(ingredients[0])}
+      >
+        {firstIngredientElement && (
+          <ElementIcon element={firstIngredientElement} size={32} />
+        )}
+        <Text style={styles.ingredientText}>{ingredients[0]}</Text>
+      </TouchableOpacity>
+      <Text style={styles.plus}>+</Text>
+      <TouchableOpacity
+        style={styles.ingredientButton}
+        onPress={() => handleElementPress(ingredients[1])}
+      >
+        {secondIngredientElement && (
+          <ElementIcon element={secondIngredientElement} size={32} />
+        )}
+        <Text style={styles.ingredientText}>{ingredients[1]}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function RecipesSection({
+  element,
+  onSelectElement,
+}: {
+  element: Element;
+  onSelectElement: (element: Element) => void;
+}) {
+  const { recipes, tier } = element;
+  const emptyMessage =
+    tier === 0
+      ? "Available from the start"
+      : "Unlocked after collecting 100 elements";
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Recipes</Text>
+      {recipes.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>{emptyMessage}</Text>
+        </View>
       ) : (
-        <Text style={[styles.iconText, { color: tierColor, fontSize: size * 0.4 }]}>
-          {element.name.charAt(0)}
-        </Text>
+        recipes.map((recipe, index) => (
+          <RecipeRow
+            key={index}
+            ingredients={recipe.ingredients}
+            onSelectElement={onSelectElement}
+          />
+        ))
+      )}
+    </View>
+  );
+}
+
+function UsedInSection({
+  elementIds,
+  onSelectElement,
+}: {
+  elementIds: string[];
+  onSelectElement: (element: Element) => void;
+}) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>
+        Used In ({elementIds.length} element{elementIds.length !== 1 ? "s" : ""}
+        )
+      </Text>
+      {elementIds.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>Not used in any other recipes</Text>
+        </View>
+      ) : (
+        <View style={styles.usedInGrid}>
+          {elementIds.map((elementId) => {
+            const referencingElement = getElementById(elementId);
+            if (!referencingElement) return null;
+            return (
+              <TouchableOpacity
+                key={elementId}
+                style={styles.usedInItem}
+                onPress={() => onSelectElement(referencingElement)}
+              >
+                <ElementIcon element={referencingElement} size={48} />
+                <Text style={styles.usedInName} numberOfLines={1}>
+                  {referencingElement.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       )}
     </View>
   );
@@ -61,21 +170,7 @@ export function ElementDetailModal({
 }: ElementDetailModalProps) {
   if (!element) return null;
 
-  const tierColor = getTierColor(element.tier);
-  const usedIn = RECIPES_USING[element.id] || [];
-
-  const handleElementPress = (name: string) => {
-    const id = toId(name);
-    const el = ELEMENT_BY_ID[id];
-    if (el) {
-      onSelectElement(el);
-    }
-  };
-
-  const getIngredientElement = (name: string): Element | null => {
-    const id = toId(name);
-    return ELEMENT_BY_ID[id] || null;
-  };
+  const elementIdsUsedInRecipes = RECIPES_USING[element.id] ?? [];
 
   return (
     <Modal
@@ -85,101 +180,13 @@ export function ElementDetailModal({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <ElementIcon element={element} size={56} />
-            <View style={styles.headerInfo}>
-              <Text style={styles.title}>{element.name}</Text>
-              <View
-                style={[styles.tierBadge, { backgroundColor: tierColor + "22" }]}
-              >
-                <Text style={[styles.tierBadgeText, { color: tierColor }]}>
-                  {TIER_NAMES[element.tier] || `Tier ${element.tier}`}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-
+        <ModalHeader element={element} onClose={onClose} />
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Recipes Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recipes</Text>
-            {element.recipes.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>
-                  {element.tier === 0
-                    ? "Available from the start"
-                    : "Unlocked after collecting 100 elements"}
-                </Text>
-              </View>
-            ) : (
-              element.recipes.map((recipe, index) => {
-                const el1 = getIngredientElement(recipe.ingredients[0]);
-                const el2 = getIngredientElement(recipe.ingredients[1]);
-                return (
-                  <View key={index} style={styles.recipeRow}>
-                    <TouchableOpacity
-                      style={styles.ingredientButton}
-                      onPress={() => handleElementPress(recipe.ingredients[0])}
-                    >
-                      {el1 && <ElementIcon element={el1} size={32} />}
-                      <Text style={styles.ingredientText}>
-                        {recipe.ingredients[0]}
-                      </Text>
-                    </TouchableOpacity>
-                    <Text style={styles.plus}>+</Text>
-                    <TouchableOpacity
-                      style={styles.ingredientButton}
-                      onPress={() => handleElementPress(recipe.ingredients[1])}
-                    >
-                      {el2 && <ElementIcon element={el2} size={32} />}
-                      <Text style={styles.ingredientText}>
-                        {recipe.ingredients[1]}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              })
-            )}
-          </View>
-
-          {/* Used In Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              Used In ({usedIn.length} element{usedIn.length !== 1 ? "s" : ""})
-            </Text>
-            {usedIn.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>
-                  Not used in any other recipes
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.usedInGrid}>
-                {usedIn.map((id) => {
-                  const el = ELEMENT_BY_ID[id];
-                  if (!el) return null;
-                  return (
-                    <TouchableOpacity
-                      key={id}
-                      style={styles.usedInItem}
-                      onPress={() => onSelectElement(el)}
-                    >
-                      <ElementIcon element={el} size={48} />
-                      <Text style={styles.usedInName} numberOfLines={1}>
-                        {el.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-
+          <RecipesSection element={element} onSelectElement={onSelectElement} />
+          <UsedInSection
+            elementIds={elementIdsUsedInRecipes}
+            onSelectElement={onSelectElement}
+          />
           <View style={styles.bottomPadding} />
         </ScrollView>
       </View>
@@ -206,15 +213,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  iconContainer: {
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  headerIconWrap: {
     marginRight: 16,
-    overflow: "hidden",
-  },
-  iconText: {
-    fontWeight: "bold",
   },
   headerInfo: {
     flex: 1,

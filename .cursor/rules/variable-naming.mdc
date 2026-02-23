@@ -1,0 +1,22 @@
+---
+description: Variable naming - no shorthands, at least 3 characters, prefer long and clear names
+globs: "**/*.ts,**/*.tsx"
+alwaysApply: true
+---
+
+# Variable Naming
+
+- **No shorthands**: Use full, clear names. Prefer a long and clear variable name to a short one.
+- **Minimum length**: A variable name should never be less than three characters.
+
+## Examples
+
+- Use `element` instead of `el`
+- Use `elementId` instead of `id` (when it denotes an element identifier)
+- Use `storedValue` instead of `val`
+- Use `ingredientElement` instead of `el` for a looked-up element
+- Use `tierA` / `tierB` (or `firstTier` / `secondTier`) instead of `a` / `b` in sort callbacks
+- Use `iconUrl` for icon URL parameters/variables
+- In list callbacks, use descriptive names: `element`, `recipe`, `referencingElement` rather than `item`, `el`, `id` when the meaning is an element or entity
+
+Property names on existing types (e.g. `element.id`, JSON `"id"`) stay as defined by the API/data model.

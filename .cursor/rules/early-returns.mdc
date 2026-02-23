@@ -1,0 +1,50 @@
+---
+description: Prefer early returns over nested if statements; avoid nesting when possible
+globs: "**/*.ts,**/*.tsx"
+alwaysApply: true
+---
+
+# Prefer Early Returns Over Nested Ifs
+
+- **Do not nest if statements** when you can flatten the logic.
+- **Use early returns** so the main path stays at the top level and edge cases return first.
+
+## Examples
+
+```ts
+// ❌ BAD – nested if
+function getLabel(data: Data): string {
+  if (data.isActive) {
+    if (data.count === 0) return "Empty";
+    return `${data.count} items`;
+  }
+  return "Inactive";
+}
+
+// ✅ GOOD – early returns, no nesting
+function getLabel(data: Data): string {
+  if (!data.isActive) return "Inactive";
+  if (data.count === 0) return "Empty";
+  return `${data.count} items`;
+}
+```
+
+```ts
+// ❌ BAD – if/else with block when early return is clearer
+function handlePress() {
+  if (condition) {
+    doOneThing();
+  } else {
+    doOtherThing();
+  }
+}
+
+// ✅ GOOD – early return
+function handlePress() {
+  if (condition) {
+    doOneThing();
+    return;
+  }
+  doOtherThing();
+}
+```

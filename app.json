@@ -6,10 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "scheme": "little-alchemy-companion",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
@@ -36,6 +36,9 @@
       "eas": {
         "projectId": "1f2cc940-740b-4a49-b058-d85b1b2f4587"
       }
-    }
+    },
+    "plugins": [
+      "react-native-iap"
+    ]
   }
 }
