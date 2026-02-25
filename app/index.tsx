@@ -31,7 +31,7 @@ export default function BrowseScreen() {
   const [paywallVisible, setPaywallVisible] = useState(false);
 
   const handleElementPress = (element: Element) => {
-    if (!isPremium && element.tier >= 10) {
+    if (!isPremium && element.tier >= 4) {
       setPaywallVisible(true);
       return;
     }
@@ -100,7 +100,7 @@ export default function BrowseScreen() {
           <ElementCard
             element={element}
             onPress={() => handleElementPress(element)}
-            isLocked={!isPremium && element.tier >= 10}
+            isLocked={!isPremium && element.tier >= 4}
           />
         )}
         contentContainerStyle={styles.listContent}

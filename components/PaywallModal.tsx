@@ -51,7 +51,7 @@ export function PaywallModal({
           </Text>
 
           <View style={styles.featuresCard}>
-            <FeatureRow text="335 tier 10–15 elements" />
+            <FeatureRow text="All tier 4+ elements" />
             <FeatureRow text="Full recipes & combinations" />
             <FeatureRow text="One-time purchase, no subscription" />
           </View>
